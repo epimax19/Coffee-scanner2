@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Koffiekar">
+<meta name="theme-color" content="#1a1208">
+<title>Koffiekar Scanner</title>
+<style>
+:root{--bg:#1a1208;--surface:#241a0d;--surface2:#2e2010;--amber:#f5a623;--amberL:#ffc85a;--cream:#f5e6c8;--dim:#c4a97a;--green:#4ade80;--red:#f87171;--border:rgba(245,166,35,0.2)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--cream);min-height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--amberL)}
+.hstats{display:flex;gap:18px}
+.sv{font-family:monospace;font-size:14px;font-weight:700;color:var(--amber)}
+.sl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;text-align:right}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:99}
+.tab{flex:1;padding:11px 4px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:var(--dim);border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px;transition:all .2s}
+.tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+.main{padding:14px;max-width:600px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:12px}
+.btn{padding:11px 16px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px;justify-content:center;-webkit-appearance:none}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--amber);color:var(--bg)}
+.btn-ghost{background:rgba(255,255,255,.08);color:var(--cream);border:1px solid var(--border)}
+.btn-red{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.btn-full{width:100%}
+.btn-sm{padding:7px 12px;font-size:12px}
+.input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--cream);font-family:monospace;font-size:14px;outline:none;width:100%;-webkit-appearance:none;margin-bottom:8px}
+.input:focus{border-color:var(--amber)}
+.input::placeholder{color:var(--dim);opacity:.5}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row .input{margin-bottom:0}
+/* scanner */
+.scan-big-btn{background:var(--amber);color:var(--bg);border:none;border-radius:16px;padding:22px 20px;font-size:18px;font-weight:800;width:100%;cursor:pointer;margin-bottom:12px}
+.scan-big-btn:active{opacity:.8}
+.scan-big-btn.loading{opacity:.6}
+.scan-hint{font-size:12px;color:var(--dim);text-align:center;margin-bottom:16px;line-height:1.6}
+.p-name{font-size:22px;font-weight:800;color:var(--amberL)}
+.p-bc{font-family:monospace;font-size:11px;color:var(--dim);margin:4px 0 10px}
+.p-price{font-size:36px;font-weight:800;color:var(--green);font-family:monospace}
+.p-stock{font-size:12px;color:var(--dim);margin-top:4px}
+.stk-low{color:var(--red)!important}
+.qty-row{display:flex;align-items:center;gap:10px;margin-top:14px}
+.qty-ctl{display:flex;align-items:center;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.qty-btn{width:42px;height:42px;background:var(--surface2);border:none;color:var(--cream);font-size:22px;cursor:pointer}
+.qty-btn:active{background:var(--amber);color:var(--bg)}
+.qty-val{width:44px;text-align:center;font-family:monospace;background:var(--surface2);padding:10px 0;font-size:16px;font-weight:700}
+/* cart */
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border-radius:10px;margin-bottom:7px}
+.ci-name{font-weight:700;font-size:14px}
+.ci-detail{font-family:monospace;font-size:11px;color:var(--dim)}
+.ci-price{font-family:monospace;font-weight:700;color:var(--amber);font-size:14px}
+.ci-rm{background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px 6px}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--border);margin:8px 0}
+.total-lbl{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+.total-amt{font-family:monospace;font-size:28px;font-weight:800;color:var(--amberL)}
+/* products */
+.pc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.pc-name{font-size:15px;font-weight:800}
+.pc-bc{font-family:monospace;font-size:11px;color:var(--dim);margin:3px 0 10px}
+.pc-foot{display:flex;justify-content:space-between;align-items:center}
+.pc-price{font-family:monospace;font-size:18px;font-weight:700;color:var(--green)}
+.pc-stk{font-size:11px;color:var(--dim)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase}
+.b-green{background:rgba(74,222,128,.15);color:var(--green)}
+.b-red{background:rgba(248,113,113,.15);color:var(--red)}
+/* sales */
+.sale{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.sale-time{font-family:monospace;font-size:11px;color:var(--dim)}
+.sale-items{font-size:13px;margin-top:3px}
+.sale-total{font-family:monospace;font-size:20px;font-weight:700;color:var(--green);flex-shrink:0;margin-left:12px}
+/* misc */
+.empty{text-align:center;padding:40px 20px;color:var(--dim);opacity:.5}
+.empty .icon{font-size:40px;margin-bottom:8px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--amber);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:700;z-index:9999;white-space:nowrap;animation:tin .3s ease}
+@keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.success-ov{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500}
+.success-ov .big{font-size:72px;margin-bottom:16px}
+.success-ov .amt{font-family:monospace;font-size:52px;font-weight:800;color:var(--green)}
+.success-ov .lbl{font-size:16px;color:var(--dim);margin-top:6px}
+.confirm-row{display:flex;gap:8px;margin-top:8px}
+.manual-row{display:flex;gap:8px;margin-bottom:14px}
+.manual-row .input{margin-bottom:0;flex:1}
+.scanning-msg{text-align:center;padding:16px;color:var(--amber)}
+.scanning-msg .spin{font-size:32px;display:block;margin-bottom:8px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">&#9749; Koffiekar</div>
+  <div class="hstats">
+    <div><div class="sv" id="stat-p">0</div><div class="sl">Producten</div></div>
+    <div><div class="sv" id="stat-s">&#8364;0</div><div class="sl">Omzet</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scanner')">&#128247; Scanner</div>
+  <div class="tab" onclick="switchTab('products')">&#128230; Producten</div>
+  <div class="tab" onclick="switchTab('sales')">&#128202; Verkopen</div>
+</div>
+
+<!-- SCANNER -->
+
+<div class="main panel active" id="tab-scanner">
+  <input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+
+  <div class="card" style="text-align:center;padding:24px 16px">
+    <div class="card-title">Barcode scannen</div>
+    <button class="scan-big-btn" id="scan-btn" onclick="document.getElementById('cam-input').click()">
+      &#128247; Foto maken van barcode
+    </button>
+    <div class="scan-hint">Richt je camera op de barcode en maak een foto.<br>De barcode wordt automatisch herkend.</div>
+  </div>
+
+  <div class="card-title" style="padding:0 2px 6px">Of handmatig invoeren</div>
+  <div class="manual-row">
+    <input class="input" id="man-input" placeholder="Barcode typen + Enter..." inputmode="numeric" onkeydown="if(event.key==='Enter')doManual()">
+    <button class="btn btn-ghost" onclick="doManual()">Zoek</button>
+  </div>
+
+  <div class="card" id="result-card">
+    <div class="card-title">Gescand product</div>
+    <div id="scan-result">
+      <div class="empty" style="padding:16px"><div class="icon" style="font-size:26px">&#128269;</div><div style="font-size:12px">Wacht op scan...</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Huidige verkoop</div>
+      <button class="btn btn-ghost btn-sm" onclick="clearCart()">Leeg</button>
+    </div>
+    <div id="cart-items">
+      <div class="empty" style="padding:12px"><div class="icon" style="font-size:24px">&#128722;</div><div style="font-size:11px">Nog leeg</div></div>
+    </div>
+    <div class="total-row">
+      <span class="total-lbl">Totaal</span>
+      <span class="total-amt" id="cart-total">&#8364;0,00</span>
+    </div>
+    <button class="btn btn-primary btn-full" style="font-size:16px;padding:15px" onclick="completeSale()">&#10003; Verkoop Afsluiten</button>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+
+<div class="main panel" id="tab-products">
+  <div class="card">
+    <div class="card-title" style="color:var(--amber)">Nieuw product toevoegen</div>
+    <input class="input" id="p-bc" placeholder="Barcode *" inputmode="numeric">
+    <input class="input" id="p-nm" placeholder="Naam *">
+    <div class="row">
+      <input class="input" id="p-pr" type="number" step="0.01" min="0" placeholder="Prijs (&#8364;) *" inputmode="decimal">
+      <input class="input" id="p-st" type="number" min="0" placeholder="Voorraad" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addProduct()">Opslaan</button>
+  </div>
+  <div id="products-list"></div>
+</div>
+
+<!-- SALES -->
+
+<div class="main panel" id="tab-sales">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h2 style="font-size:17px;font-weight:800">Verkoophistorie</h2>
+    <div id="clear-sales-area">
+      <button class="btn btn-red btn-sm" onclick="askClearSales()">Wissen</button>
+    </div>
+  </div>
+  <div id="sales-list"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+var DEFAULTS=[
+  {id:1,barcode:'8710847000001',name:'Espresso',price:1.50,stock:100},
+  {id:2,barcode:'8710847000002',name:'Cappuccino',price:2.50,stock:80},
+  {id:3,barcode:'8710847000003',name:'Latte Macchiato',price:2.80,stock:60},
+  {id:4,barcode:'8710847000004',name:'Thee',price:1.80,stock:50},
+  {id:5,barcode:'8710847000005',name:'Chocolademelk',price:2.00,stock:40},
+  {id:6,barcode:'8710847000006',name:'Stroopwafel',price:0.75,stock:200},
+  {id:7,barcode:'8710847000007',name:'Koffie Verkeerd',price:2.30,stock:70},
+  {id:8,barcode:'8710847000008',name:'Water (klein)',price:1.00,stock:150},
+];
+var products=load('kk_p',DEFAULTS);
+var sales=load('kk_s',[]);
+var cart=[];
+var curQty=1;
+
+function load(k,def){try{var s=localStorage.getItem(k);return s?JSON.parse(s):def;}catch{return def;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function saveP(){save('kk_p',products);}
+function saveS(){save('kk_s',sales);}
+function fmt(n){return '\u20ac'+n.toFixed(2).replace('.',',');}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(el,i){el.classList.toggle('active',['scanner','products','sales'][i]===t);});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='products')renderProducts();
+  if(t==='sales')renderSales();
+  window.scrollTo(0,0);
+}
+
+// ── PHOTO SCAN via Claude API ─────────────────────────────────
+async function handlePhoto(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  input.value='';
+  var btn=document.getElementById('scan-btn');
+  btn.textContent='⏳ Scannen...';
+  btn.classList.add('loading');
+  btn.disabled=true;
+  document.getElementById('scan-result').innerHTML='<div class="scanning-msg"><span class="spin">⏳</span><div style="font-size:13px">Barcode herkennen...</div></div>';
+
+  try{
+    var base64=await new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(){res(r.result.split(',')[1]);};
+      r.onerror=rej;
+      r.readAsDataURL(file);
+    });
+
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:100,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:base64}},
+          {type:'text',text:'Read the barcode number in this image. Reply with ONLY the digits of the barcode, nothing else. If no barcode is visible, reply: NONE'}
+        ]}]
+      })
+    });
+
+    var data=await resp.json();
+    var text=(data.content&&data.content[0]&&data.content[0].text||'NONE').trim();
+    var digits=text.replace(/\D/g,'');
+
+    if(text==='NONE'||digits.length<4){
+      showToast('❌ Geen barcode gevonden in foto');
+      document.getElementById('scan-result').innerHTML='<div class="empty" style="padding:16px"><div class="icon" style="font-size:26px">🔍</div><div style="font-size:12px">Wacht op scan...</div></div>';
+    } else {
+      document.getElementById('man-input').value=digits;
+      lookup(digits);
+    }
+  } catch(e){
+    showToast('❌ Fout: '+e.message);
+  }
+
+  btn.textContent='📷 Foto maken van barcode';
+  btn.classList.remove('loading');
+  btn.disabled=false;
+}
+
+// ── LOOKUP ────────────────────────────────────────────────────
+function doManual(){
+  var v=document.getElementById('man-input').value.trim();
+  if(v)lookup(v);
+}
+
+function lookup(code){
+  code=(code||'').trim().replace(/\s/g,'');
+  if(!code)return;
+  curQty=1;
+  var p=products.find(function(x){return x.barcode===code;});
+  var el=document.getElementById('scan-result');
+  if(p){
+    beep();
+    el.innerHTML=
+      '<div>'+
+      '<div class="p-name">'+p.name+'</div>'+
+      '<div class="p-bc">&#128290; '+p.barcode+'</div>'+
+      '<div class="p-price">'+fmt(p.price)+'</div>'+
+      '<div class="p-stock'+(p.stock<10?' stk-low':'')+'">&#128230; Voorraad: '+p.stock+' stuks '+(p.stock<10?'&#9888;&#65039;':'')+'</div>'+
+      '<div class="qty-row">'+
+        '<div class="qty-ctl">'+
+          '<button class="qty-btn" onclick="chQty(-1)">&minus;</button>'+
+          '<div class="qty-val" id="qv">1</div>'+
+          '<button class="qty-btn" onclick="chQty(1)">+</button>'+
+        '</div>'+
+        '<button class="btn btn-primary" style="flex:1" onclick="addToCart(\''+p.id+'\')">+ Toevoegen</button>'+
+      '</div>'+
+      '</div>';
+  } else {
+    el.innerHTML=
+      '<div style="text-align:center;padding:16px;color:var(--red)">'+
+      '<div style="font-size:28px;margin-bottom:8px">&#10067;</div>'+
+      '<div style="font-size:13px">Barcode <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px">'+code+'</code> niet gevonden</div>'+
+      '<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="prefill(\''+code+'\')">+ Aanmaken</button>'+
+      '</div>';
+  }
+}
+
+function chQty(d){
+  curQty=Math.max(1,curQty+d);
+  var e=document.getElementById('qv');
+  if(e)e.textContent=curQty;
+}
+
+// ── CART ──────────────────────────────────────────────────────
+function addToCart(id){
+  id=parseInt(id);
+  var p=products.find(function(x){return x.id===id;});
+  if(!p)return;
+  var ex=cart.find(function(c){return c.id===id;});
+  if(ex)ex.qty+=curQty;
+  else cart.push({id:p.id,name:p.name,price:p.price,qty:curQty});
+  renderCart();
+  showToast('✅ '+curQty+'× '+p.name);
+  document.getElementById('man-input').value='';
+  document.getElementById('scan-result').innerHTML='<div class="empty" style="padding:16px"><div class="icon" style="font-size:26px">🔍</div><div style="font-size:12px">Wacht op scan...</div></div>';
+}
+
+function renderCart(){
+  var el=document.getElementById('cart-items');
+  var tot=document.getElementById('cart-total');
+  if(!cart.length){
+    el.innerHTML='<div class="empty" style="padding:12px"><div class="icon" style="font-size:24px">&#128722;</div><div style="font-size:11px">Nog leeg</div></div>';
+    tot.textContent='\u20ac0,00';return;
+  }
+  var total=0;
+  el.innerHTML=cart.map(function(c){
+    var sub=c.price*c.qty;total+=sub;
+    return '<div class="cart-item">'+
+      '<div><div class="ci-name">'+c.name+'</div><div class="ci-detail">'+c.qty+' \xd7 '+fmt(c.price)+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div class="ci-price">'+fmt(sub)+'</div>'+
+        '<button class="ci-rm" onclick="rmCart('+c.id+')">&#10005;</button>'+
+      '</div></div>';
+  }).join('');
+  tot.textContent=fmt(total);
+}
+
+function rmCart(id){cart=cart.filter(function(c){return c.id!==id;});renderCart();}
+function clearCart(){cart=[];renderCart();}
+
+function completeSale(){
+  if(!cart.length){showToast('&#9888;&#65039; Geen producten');return;}
+  var total=cart.reduce(function(s,c){return s+c.price*c.qty;},0);
+  cart.forEach(function(item){
+    var p=products.find(function(x){return x.id===item.id;});
+    if(p)p.stock=Math.max(0,p.stock-item.qty);
+  });
+  saveP();
+  sales.unshift({id:Date.now(),time:new Date().toLocaleString('nl-NL'),items:cart.slice(),total:total});
+  saveS();
+  showSuccess(total);
+  clearCart();
+  updateStats();
+}
+
+function showSuccess(total){
+  var ov=document.createElement('div');
+  ov.className='success-ov';
+  ov.innerHTML='<div class="big">&#10003;&#65039;</div><div class="amt">'+fmt(total)+'</div><div class="lbl">Verkoop afgerond!</div>';
+  ov.onclick=function(){ov.remove();};
+  document.body.appendChild(ov);
+  setTimeout(function(){if(ov.parentNode)ov.remove();},2500);
+  beep();
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────────
+function addProduct(){
+  var bc=document.getElementById('p-bc').value.trim();
+  var nm=document.getElementById('p-nm').value.trim();
+  var pr=parseFloat(document.getElementById('p-pr').value);
+  var st=parseInt(document.getElementById('p-st').value)||0;
+  if(!bc||!nm||isNaN(pr)){showToast('&#9888;&#65039; Vul verplichte velden in');return;}
+  if(products.find(function(p){return p.barcode===bc;})){showToast('&#9888;&#65039; Barcode al in gebruik');return;}
+  products.push({id:Date.now(),barcode:bc,name:nm,price:pr,stock:st});
+  saveP();renderProducts();updateStats();
+  ['p-bc','p-nm','p-pr','p-st'].forEach(function(id){document.getElementById(id).value='';});
+  showToast('&#10003;&#65039; '+nm+' toegevoegd!');
+}
+
+function deleteProduct(id){
+  products=products.filter(function(p){return p.id!==id;});
+  saveP();renderProducts();updateStats();
+}
+
+function askDeleteProduct(id){
+  var el=document.getElementById('del-confirm-'+id);
+  if(el)el.style.display='flex';
+}
+function cancelDelete(id){
+  var el=document.getElementById('del-confirm-'+id);
+  if(el)el.style.display='none';
+}
+
+function prefill(bc){
+  switchTab('products');
+  document.getElementById('p-bc').value=bc;
+  document.getElementById('p-nm').focus();
+}
+
+function renderProducts(){
+  var el=document.getElementById('products-list');
+  if(!products.length){el.innerHTML='<div class="empty"><div class="icon">&#128230;</div><p>Nog geen producten</p></div>';return;}
+  el.innerHTML=products.map(function(p){
+    return '<div class="pc">'+
+      '<div class="pc-name">'+p.name+'</div>'+
+      '<div class="pc-bc">&#128290; '+p.barcode+'</div>'+
+      '<div class="pc-foot">'+
+        '<div>'+
+          '<div class="pc-price">'+fmt(p.price)+'</div>'+
+          '<div class="pc-stk'+(p.stock<10?' stk-low':'')+'">'+p.stock+' stuks <span class="badge '+(p.stock<10?'b-red':'b-green')+'">'+(p.stock<10?'Laag':'OK')+'</span></div>'+
+        '</div>'+
+        '<div>'+
+          '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="askDeleteProduct('+p.id+')">&#128465; Verwijder</button>'+
+          '<div id="del-confirm-'+p.id+'" style="display:none;gap:6px;margin-top:6px">'+
+            '<button class="btn btn-red btn-sm" onclick="deleteProduct('+p.id+')">&#10003; Ja</button>'+
+            '<button class="btn btn-ghost btn-sm" onclick="cancelDelete('+p.id+')">Nee</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ── SALES ─────────────────────────────────────────────────────
+function renderSales(){
+  var el=document.getElementById('sales-list');
+  if(!sales.length){el.innerHTML='<div class="empty"><div class="icon">&#128202;</div><p>Nog geen verkopen</p></div>';return;}
+  el.innerHTML=sales.map(function(s){
+    return '<div class="sale">'+
+      '<div style="flex:1;min-width:0">'+
+        '<div class="sale-time">&#128336; '+s.time+'</div>'+
+        '<div class="sale-items">'+s.items.map(function(i){return i.qty+'\xd7 '+i.name;}).join(' \xb7 ')+'</div>'+
+      '</div>'+
+      '<div class="sale-total">'+fmt(s.total)+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function askClearSales(){
+  document.getElementById('clear-sales-area').innerHTML=
+    '<div style="display:flex;gap:8px">'+
+    '<button class="btn btn-red btn-sm" onclick="clearSales()">&#10003; Ja, wis alles</button>'+
+    '<button class="btn btn-ghost btn-sm" onclick="cancelClearSales()">Annuleer</button>'+
+    '</div>';
+}
+function cancelClearSales(){
+  document.getElementById('clear-sales-area').innerHTML='<button class="btn btn-red btn-sm" onclick="askClearSales()">Wissen</button>';
+}
+function clearSales(){
+  sales=[];saveS();renderSales();updateStats();cancelClearSales();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('stat-p').textContent=products.length;
+  var total=sales.reduce(function(s,x){return s+x.total;},0);
+  document.getElementById('stat-s').textContent=fmt(total);
+}
+
+var toastTimer;
+function showToast(msg){
+  var old=document.querySelector('.toast');if(old)old.remove();
+  if(toastTimer)clearTimeout(toastTimer);
+  var t=document.createElement('div');t.className='toast';t.innerHTML=msg;
+  document.body.appendChild(t);
+  toastTimer=setTimeout(function(){t.remove();},3000);
+}
+
+function beep(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=1400;
+    g.gain.setValueAtTime(0.2,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.1);
+    o.start();o.stop(ctx.currentTime+0.1);
+  }catch(e){}
+}
+
+// Init
+updateStats();
+</script>
+
+</body>
+</html>
